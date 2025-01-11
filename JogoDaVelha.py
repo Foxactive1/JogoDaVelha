@@ -1,10 +1,8 @@
-
 import random
 import tkinter as tk
 from tkinter import messagebox
 
 def check_winner(board, player):
-    # Verifica se algum jogador venceu
     for row in board:
         if all([cell == player for cell in row]):
             return True
@@ -16,28 +14,70 @@ def check_winner(board, player):
     return False
 
 def is_full(board):
-    # Verifica se o tabuleiro está cheio
     return all([cell != " " for row in board for cell in row])
 
 def make_move(board, player, row, col):
-    # Faz uma jogada
     if board[row][col] == " ":
         board[row][col] = player
         return True
     else:
         return False
 
-def ai_move_easy(board, player):
-    # Movimento aleatório para o nível fácil
+def ai_move_easy(board):
     empty_cells = [(row, col) for row in range(3) for col in range(3) if board[row][col] == " "]
     return random.choice(empty_cells)
 
+def ai_move_hard(board, player):
+    best_score = -float('inf')
+    best_move = None
+    for row in range(3):
+        for col in range(3):
+            if board[row][col] == " ":
+                board[row][col] = player
+                score = minimax(board, False, player)
+                board[row][col] = " "
+                if score > best_score:
+                    best_score = score
+                    best_move = (row, col)
+    return best_move
+
+def minimax(board, is_maximizing, player):
+    opponent = "O" if player == "X" else "X"
+    if check_winner(board, player):
+        return 1
+    if check_winner(board, opponent):
+        return -1
+    if is_full(board):
+        return 0
+
+    if is_maximizing:
+        best_score = -float('inf')
+        for row in range(3):
+            for col in range(3):
+                if board[row][col] == " ":
+                    board[row][col] = player
+                    score = minimax(board, False, player)
+                    board[row][col] = " "
+                    best_score = max(score, best_score)
+        return best_score
+    else:
+        best_score = float('inf')
+        for row in range(3):
+            for col in range(3):
+                if board[row][col] == " ":
+                    board[row][col] = opponent
+                    score = minimax(board, True, player)
+                    board[row][col] = " "
+                    best_score = min(score, best_score)
+        return best_score
+
 class Game:
-    def __init__(self, root):
+    def __init__(self, root, difficulty):
         self.root = root
         self.root.title("Jogo da Velha")
         self.board = [[" " for _ in range(3)] for _ in range(3)]
         self.current_player = "X"
+        self.difficulty = difficulty
         self.create_board_buttons()
 
     def create_board_buttons(self):
@@ -65,7 +105,10 @@ class Game:
 
     def make_ai_move(self):
         if self.current_player == "O":
-            ai_row, ai_col = ai_move_easy(self.board, self.current_player)
+            if self.difficulty == "easy":
+                ai_row, ai_col = ai_move_easy(self.board)
+            else:
+                ai_row, ai_col = ai_move_hard(self.board, self.current_player)
             make_move(self.board, self.current_player, ai_row, ai_col)
             self.buttons[ai_row][ai_col].config(text=self.current_player)
             if check_winner(self.board, self.current_player):
@@ -76,18 +119,22 @@ class Game:
                 return
             self.switch_player()
 
-
-
-
-
-
     def show_result(self, message):
         messagebox.showinfo("Fim de Jogo", message)
         self.root.quit()
 
 def main():
+    def start_game(difficulty):
+        root.destroy()
+        game_root = tk.Tk()
+        Game(game_root, difficulty)
+        game_root.mainloop()
+
     root = tk.Tk()
-    game = Game(root)
+    root.title("Jogo da Velha - Seleção de Nível")
+    tk.Label(root, text="Selecione o nível de dificuldade", font=("Arial", 14)).pack(pady=10)
+    tk.Button(root, text="Fácil", font=("Arial", 12), command=lambda: start_game("easy")).pack(pady=5)
+    tk.Button(root, text="Difícil", font=("Arial", 12), command=lambda: start_game("hard")).pack(pady=5)
     root.mainloop()
 
 if __name__ == "__main__":
